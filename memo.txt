@@ -1,0 +1,15 @@
+PyQt6
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+
+実行方法
+python app/main.py
+
+googleDriveにうｐ  今やってる
+
+Twitterとかdiscordとかにあげられたら便利そう？
+ふらすく使っていい感じのサーバーたてらんないかな
+
+インポートがどうしても自動化できなそうなら手順とか入れとく
