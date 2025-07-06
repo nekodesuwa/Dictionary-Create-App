@@ -1,15 +1,20 @@
-PyQt6
-google-api-python-client
-google-auth
-google-auth-oauthlib
-google-auth-httplib2
+個人的な走り書き用メモです。
+
+開発状況
+機能は完成！時間があったらやるたいことをやる
 
 実行方法
 python app/main.py
 
-googleDriveにうｐ  今やってる
+googleDriveにうｐ
+onedriveのほうが操作しやすそう(アカウント登録とかも必要なし)
+した
 
-Twitterとかdiscordとかにあげられたら便利そう？
+Twitterとかdiscordとかに直接あげられたら便利そう？APIの仕様調べる
 ふらすく使っていい感じのサーバーたてらんないかな
 
+全体公開かパスワード公開、ハッシュ化してデータベースに保存
 インポートがどうしても自動化できなそうなら手順とか入れとく
+
+アプリとして実行しやすくexe作る
+デザイン
