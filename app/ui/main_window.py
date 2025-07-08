@@ -10,7 +10,7 @@ from PIL import Image
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
     QTableWidgetItem, QLineEdit, QComboBox, QPushButton, QListWidget,
-    QLabel, QFileDialog, QMessageBox, QInputDialog, QDialog, QSplitter
+    QLabel, QFileDialog, QMessageBox, QInputDialog, QDialog, QSplitter,QSizePolicy
 )
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt
@@ -102,6 +102,10 @@ class MainWindow(QWidget):
         self.table.setHorizontalHeaderLabels(["読み", "表記", "品詞"])
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(header.ResizeMode.Stretch)
+        self.table.setMinimumWidth(400)
 
         # 単語の編集・削除
         edit_button = QPushButton("編集")
