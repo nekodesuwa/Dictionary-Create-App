@@ -6,15 +6,10 @@
 実行方法
 python app/main.py
 
-googleDriveにうｐ
-onedriveのほうが操作しやすそう(アカウント登録とかも必要なし)
-した
+Twitterとかdiscordとかに直接あげられたら便利そう？　容量増えそう
 
-Twitterとかdiscordとかに直接あげられたら便利そう？APIの仕様調べる
-ふらすく使っていい感じのサーバーたてらんないかな
+インポートがどうしても自動化できなそうなら手順とか入れとく　りどみいれる　まだ
 
-全体公開かパスワード公開、ハッシュ化してデータベースに保存
-インポートがどうしても自動化できなそうなら手順とか入れとく
+アプリとして実行しやすくexe作る した
 
-アプリとして実行しやすくexe作る
-デザイン
+pyinstaller --onefile --noconsole --add-data "..\venv\Lib\site-packages\PyQt6\Qt6\bin;PyQt6\Qt6\bin" main.py

@@ -1,6 +1,5 @@
 # 必要な標準ライブラリ・外部ライブラリをインポート
 import os
-import json
 import shutil
 import subprocess
 import qrcode
@@ -10,7 +9,7 @@ from PIL import Image
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
     QTableWidgetItem, QLineEdit, QComboBox, QPushButton, QListWidget,
-    QLabel, QFileDialog, QMessageBox, QInputDialog, QDialog, QSplitter,QSizePolicy
+    QLabel, QFileDialog, QMessageBox, QInputDialog, QDialog, QSplitter
 )
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt
@@ -22,13 +21,12 @@ class MainWindow(QWidget):
         self.setWindowTitle("辞書ファイル管理ツール")
 
         # フォルダパスの設定など
-        self.dictionary_dir = dictionary_dir
-        os.makedirs(self.dictionary_dir, exist_ok=True)
-
-        self.saved_dir = os.path.abspath(os.path.join(self.dictionary_dir, "..", "saved_dictionaries"))
-        os.makedirs(self.saved_dir, exist_ok=True)
-
+        self.dictionary_dir = os.path.join(dictionary_dir, "base_dictionary")
+        self.saved_dir = os.path.join(dictionary_dir, "saved_dictionary")
         self.onedrive_dir = os.path.expanduser("~/OneDrive/MyIMEBackup")
+
+        os.makedirs(self.dictionary_dir, exist_ok=True)
+        os.makedirs(self.saved_dir, exist_ok=True)
         os.makedirs(self.onedrive_dir, exist_ok=True)
 
         self.entries = []
@@ -358,32 +356,36 @@ class MainWindow(QWidget):
             if not files:
                 QMessageBox.warning(self, "復元失敗", "OneDriveのバックアップフォルダにファイルがありません。")
                 return
-            # ユーザーに選択させる
+
             fname, ok = QInputDialog.getItem(self, "復元するファイルを選択", "ファイル名:", files, 0, False)
-            if not ok:
+            if not ok or not fname:
                 return
+
             src = os.path.join(self.onedrive_dir, fname)
-            # 保存先を指定
-            save_path, _ = QFileDialog.getSaveFileName(self, "復元先ファイルを指定", fname)
-            if not save_path:
-                return
-            shutil.copy2(src, save_path)
-            QMessageBox.information(self, "復元完了", f"OneDriveから復元しました：\n{save_path}")
+            dst = os.path.join(self.dictionary_dir, fname)
+
+            shutil.copy2(src, dst)
+            self.refresh_file_list()  # ファイルリストを更新
+            QMessageBox.information(self, "復元完了", f"OneDriveから復元しました：\n{dst}")
         except Exception as e:
             QMessageBox.critical(self, "復元失敗", f"OneDriveからの復元に失敗しました。\n{e}")
 
     # クリップボードに辞書テキストをコピー
     def export_to_clipboard(self):
-        if not self.entries:
-            QMessageBox.warning(self, "共有失敗", "エクスポートする辞書がありません。")
+        if not self.entries or not self.current_file:
+            QMessageBox.warning(self, "共有失敗", "エクスポートする辞書ファイルを選択してください。")
             return
-        text = ""
+
+        file_name = os.path.basename(self.current_file)
+        text = f"{file_name}\n"
         for yomi, hyouki, hinshi in self.entries:
             text += f"{yomi}\t{hyouki}\t{hinshi}\n"
+
         clipboard = QApplication.clipboard()
         clipboard.setText(text)
-        QMessageBox.information(self, "コピー完了", "辞書データをクリップボードにコピーしました。友人にペーストして共有できます。")
+        QMessageBox.information(self, "コピー完了", f"{file_name} と辞書データをクリップボードにコピーしました。")
 
+    # クリップボードから読み込み
     def import_from_clipboard(self):
         clipboard = QApplication.clipboard()
         text = clipboard.text()
@@ -392,35 +394,47 @@ class MainWindow(QWidget):
             return
 
         lines = text.strip().splitlines()
+        if not lines:
+            QMessageBox.warning(self, "貼り付け失敗", "クリップボードに有効な行がありません。")
+            return
+
+        first_line = lines[0].strip()
+        if not (first_line.endswith(".txt") or first_line.endswith("）")):
+            QMessageBox.warning(self, "ファイル名エラー", "1行目にファイル名（例: xxx.txt）を含めてください。")
+            return
+
+        import re
+        match = re.search(r"\(?([^\s()]+\.txt)\)?", first_line)
+        if not match:
+            QMessageBox.warning(self, "ファイル名抽出失敗", "先頭行からファイル名が抽出できませんでした。")
+            return
+        file_name = match.group(1)
+        self.current_file = os.path.join(self.dictionary_dir, file_name)
+
         new_entries = []
-        for line in lines:
-            parts = line.split('\t')
+        for line in lines[1:]:
+            parts = line.strip().split('\t')
             if len(parts) == 3:
                 new_entries.append(tuple(parts))
 
         if not new_entries:
-            QMessageBox.warning(self, "貼り付け失敗", "クリップボードのテキストの形式が辞書データとして不正です。")
+            QMessageBox.warning(self, "貼り付け失敗", "有効な辞書データが見つかりませんでした。")
             return
 
         ret = QMessageBox.question(
             self, "辞書データ読み込み",
-            f"クリップボードから{len(new_entries)}件の辞書データを読み込みます。既存データは重複時に上書きされます。よろしいですか？",
+            f"{file_name} に {len(new_entries)} 件のデータを上書き保存します。よろしいですか？",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if ret != QMessageBox.StandardButton.Yes:
             return
 
-        # 重複チェック用にdictに変換
-        entry_map = {(yomi, hyouki): hinshi for yomi, hyouki, hinshi in self.entries}
-
-        for yomi, hyouki, hinshi in new_entries:
-            entry_map[(yomi, hyouki)] = hinshi  # 上書きまたは新規追加
-
-        self.entries = [(y, h, entry_map[(y, h)]) for (y, h) in entry_map]
-
+        self.entries = new_entries
         self.save_current_file()
         self.refresh_table()
-        QMessageBox.information(self, "読み込み完了", "辞書データをインポートしました。重複データは上書きされました。")
+        self.refresh_file_list()
+
+        QMessageBox.information(self, "読み込み完了", f"{file_name} を作成または上書きし、辞書データをインポートしました。")
 
     # QRコードを表示
     def show_qr_code(self):
